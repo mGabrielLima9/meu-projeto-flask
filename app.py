@@ -1,24 +1,15 @@
-from flask import Flask, render_template, request, jsonify
-import json
 import os
+import json
+from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
-# Caminho relativo para o arquivo JSON
+# Caminho relativo para o arquivo JSON, com base na localização do arquivo app.py
 json_path = os.path.join(os.path.dirname(__file__), 'retencao.json')
 with open(json_path, encoding='utf-8') as f:
     cnae_data = json.load(f)
-# Função para desativar o cache
-@app.after_request
-def no_cache(response):
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, public, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
 
-# Carregar os dados de CNAE do arquivo JSON
-with open(r'C:\Users\admin\Desktop\grok\retencao.json', encoding='utf-8') as f:
-    cnae_data = json.load(f)
+# Resto do seu código aqui...
 
 # Função para obter os dados do CNAE
 def get_cnae_info(cnae_code):
