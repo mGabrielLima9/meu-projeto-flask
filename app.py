@@ -1,9 +1,8 @@
 import os
 import json
 from flask import Flask, render_template, request, jsonify
-
 app = Flask(__name__)
-
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default_secret_key')
 # Caminho relativo para o arquivo JSON, com base na localização do arquivo app.py
 json_path = os.path.join(os.path.dirname(__file__), 'retencao.json')
 with open(json_path, encoding='utf-8') as f:
