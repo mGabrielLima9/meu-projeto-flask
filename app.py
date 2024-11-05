@@ -4,6 +4,10 @@ import os
 
 app = Flask(__name__)
 
+# Caminho relativo para o arquivo JSON
+json_path = os.path.join(os.path.dirname(__file__), 'retencao.json')
+with open(json_path, encoding='utf-8') as f:
+    cnae_data = json.load(f)
 # Função para desativar o cache
 @app.after_request
 def no_cache(response):
