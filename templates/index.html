@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <title>Cálculo de Retenção de IR</title>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let cnaeList = [];
+            
+            // Requisição AJAX para obter os dados de CNAE
+            fetch('/get_cnae_data')
+                .then(response => response.json())
+                .then(data => {
+                    cnaeList = data;
+                });
+
+            const cnaeInput = document.getElementById("cnae");
+            const suggestions = document.getElementById("cnae-suggestions");
+
+            // Função para aplicar a máscara de CNPJ
+            const cnpjInput = document.getElementById("cnpj");
+            cnpjInput.addEventListener("input", function() {
+                let value = this.value.replace(/\D/g, "");
+                if (value.length > 14) value = value.slice(0, 14);
+                value = value.replace(/^(\d{2})(\d)/, "$1.$2");
+                value = value.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+                value = value.replace(/\.(\d{3})(\d)/, ".$1/$2");
+                value = value.replace(/(\d{4})(\d)/, "$1-$2");
+                this.value = value;
+            });
+
+            // Mostrar sugestões ao focar no campo CNAE
+            cnaeInput.addEventListener("focus", () => {
+                displaySuggestions(cnaeList);
+            });
+
+            cnaeInput.addEventListener("input", function() {
+                const query = this.value.toLowerCase();
+                const filteredData = cnaeList.filter(item => 
+                    item.CNAE.toLowerCase().includes(query) || item.SERVIÇO.toLowerCase().includes(query)
+                );
+                displaySuggestions(filteredData);
+            });
+
+            // Exibir sugestões e buscar detalhes quando um item é selecionado
+            function displaySuggestions(data) {
+                suggestions.innerHTML = "";
+                data.forEach(item => {
+                    const option = document.createElement("div");
+                    option.classList.add("suggestion-item");
+                    option.textContent = `${item.CNAE} - ${item.SERVIÇO}`;
+                    option.onclick = () => {
+                        cnaeInput.value = item.CNAE;
+                        suggestions.innerHTML = "";
+                        fetchCnaeDetails(item.CNAE);  // Buscar detalhes ao selecionar
+                    };
+                    suggestions.appendChild(option);
+                });
+                suggestions.style.display = "block";
+            }
+
+            // Função para obter detalhes do CNAE e atualizar a página
+            function fetchCnaeDetails(cnaeCode) {
+                fetch(`/get_cnae_details?cnae=${cnaeCode}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.error) {
+                            document.getElementById("aliquota").textContent = data.aliquota + "%";
+                            document.getElementById("natureza").textContent = data.natureza;
+                            document.getElementById("item_lc116").textContent = data.item_lc116;
+                        } else {
+                            document.getElementById("aliquota").textContent = "N/A";
+                            document.getElementById("natureza").textContent = "N/A";
+                            document.getElementById("item_lc116").textContent = "N/A";
+                        }
+                    })
+                    .catch(error => console.error('Erro ao buscar detalhes do CNAE:', error));
+            }
+
+            // Esconde sugestões ao clicar fora
+            document.addEventListener("click", function(event) {
+                if (!cnaeInput.contains(event.target) && !suggestions.contains(event.target)) {
+                    suggestions.style.display = "none";
+                }
+            });
+
+            // Máscara de moeda para o campo Valor da Nota Fiscal
+            const valorNotaInput = document.getElementById("valor_nota");
+            valorNotaInput.addEventListener("input", function() {
+                let value = this.value.replace(/\D/g, "");
+                if (value) {
+                    value = (parseInt(value) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                    this.value = value;
+                } else {
+                    this.value = "R$ 0,00";
+                }
+            });
+
+            // Função para limpar todos os campos e resetar o formulário
+            document.getElementById("nova_consulta").addEventListener("click", function() {
+                document.getElementById("cnpj").value = "";
+                document.getElementById("cnae").value = "";
+                document.getElementById("valor_nota").value = "";
+                document.getElementById("aliquota").textContent = "N/A";
+                document.getElementById("natureza").textContent = "N/A";
+                document.getElementById("item_lc116").textContent = "N/A";
+
+                // Limpa o resultado
+                const resultadoDiv = document.querySelector(".resultado");
+                if (resultadoDiv) resultadoDiv.style.display = "none";
+            });
+        });
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background-color: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            font-weight: bold;
+        }
+        .container {
+            background: #ffffff;
+            padding: 30px;
+            max-width: 700px;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"] {
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus, input[type="number"]:focus {
+            border-color: #0066cc;
+            outline: none;
+        }
+        .suggestions-container {
+            position: relative;
+        }
+        .suggestion-item {
+            padding: 10px;
+            cursor: pointer;
+            background: #f8f9fc;
+            border-bottom: 1px solid #eee;
+            color: #333;
+        }
+        .suggestion-item:hover {
+            background: #e9efff;
+        }
+        #cnae-suggestions {
+            display: none;
+            position: absolute;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        .form-column {
+            width: 100%;
+        }
+        .cnae-details {
+            padding: 10px;
+            background-color: #f8f9fc;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+            font-size: 0.95rem;
+            color: #333;
+        }
+        .cnae-details p {
+            margin: 5px 0;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            background-color: #0066cc;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #004d99;
+        }
+        .nova-consulta {
+            background-color: #888;
+        }
+        .nova-consulta:hover {
+            background-color: #555;
+        }
+        .resultado {
+            background: #e3f2fd;
+            border-left: 5px solid #0066cc;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            color: #333;
+        }
+        .resultado h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.25rem;
+            color: #004d99;
+        }
+        .resultado p {
+            margin: 5px 0;
+        }
+        .resultado .valor-retencao {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #d32f2f;
+        }
+   
+        .resultado .valor-retencao {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cálculo de Retenção de IR</h1>
+        
+        <form method="post">
+            <div class="form-group">
+                <label for="cnpj">CNPJ:</label>
+                <input type="text" id="cnpj" name="cnpj" placeholder="Digite o CNPJ">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group form-column suggestions-container">
+                    <label for="cnae">Código CNAE:</label>
+                    <input type="text" id="cnae" name="cnae" autocomplete="off" placeholder="Digite o código CNAE" required>
+                    <div id="cnae-suggestions"></div>
+                </div>
+                
+                <div class="cnae-details form-column">
+                    <p><strong>Alíquota:</strong> <span id="aliquota">N/A</span></p>
+                    <p><strong>Natureza:</strong> <span id="natureza">N/A</span></p>
+                    <p><strong>Item LC 116:</strong> <span id="item_lc116">N/A</span></p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="valor_nota">Valor da Nota Fiscal:</label>
+                <input type="text" id="valor_nota" name="valor_nota" placeholder="R$ 0,00" required>
+            </div>
+            
+            <div class="button-container">
+                <button type="submit">Calcular Retenção</button>
+                <button type="button" id="nova_consulta" class="nova-consulta">Nova Consulta</button>
+            </div>
+        </form>
+
+        {% if resultado %}
+            <div class="resultado">
+                <h2>Resultado</h2>
+                <p class="valor-retencao">O valor da retenção é: R$ {{ resultado }}</p>
+                <p><strong>Alíquota Utilizada:</strong> {{ cnae_info.aliquota }}%</p>
+                <p><strong>Natureza:</strong> {{ cnae_info.natureza }}</p>
+                <p><strong>Valor da Nota Fiscal:</strong> {{ valor_nota }}</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

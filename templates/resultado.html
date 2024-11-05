@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultado da Retenção</title>
+</head>
+<body>
+    <h1>Resultado da Retenção do Imposto de Renda</h1>
+    <p>CNAE Selecionado: {{ cnae_selecionado }}</p>
+    <p>Serviço: {{ info['SERVIÇO'] }}</p>
+    <p>Alíquota: {{ info['ALIQ'] }}</p>
+    <p>Natureza: {{ info['NATUREZA'] }}</p>
+    <p>Item LC 116: {{ info['ITEM_LC_116'] }}</p>
+    <p>CNPJ: {{ cnpj }}</p>
+    <p>Valor da Nota Fiscal: R$ {{ valor_nota }}</p>
+    <p>Valor da Retenção: R$ {{ valor_retencao }}</p>
+    <a href="/">Voltar</a>
+</body>
+</html>
